@@ -7,7 +7,10 @@
 @media(prefers-color-scheme:dark){:root{--bg:#14161a;--card:#1d2026;--tx:#e8eaed;--mut:#9aa0a6;--ac:#6ea0ff;--bd:#2c3037;--hl:#1e2a44}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Microsoft JhengHei",system-ui,sans-serif}
 .wrap{max-width:1000px;margin:0 auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:760px){.wrap{grid-template-columns:1fr}}
+@media(max-width:760px){.wrap{grid-template-columns:1fr;padding:10px;gap:10px}
+.tools{order:-2}.detail{order:-1;position:sticky;top:0;z-index:5;padding:14px;box-shadow:0 4px 10px rgba(0,0,0,.12)}
+.w{font-size:28px}.zh{font-size:18px;margin-bottom:8px}.ex{font-size:15px}.btns{margin-top:10px}
+.list{max-height:none}input,select{font-size:16px}}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:10px}
 .tools{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input,select{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit}
