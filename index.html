@@ -23,11 +23,14 @@ button{padding:7px 12px;border:1px solid var(--bd);border-radius:8px;background:
 button:hover{border-color:var(--ac);color:var(--ac)}.btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .cnt{color:var(--mut);font-size:13px}
 </style></head><body>
+<div id="warn" style="display:none;max-width:1000px;margin:12px auto 0;padding:10px 14px;border-radius:8px;background:#fff4e5;color:#7a4b00">此瀏覽器（LINE 內建瀏覽器）不支援朗讀，請點右上角選單改用 Chrome 或 Safari 開啟。</div>
 <div class="wrap">
 <div class="tools card" style="padding:10px">
 <input id="q" placeholder="搜尋單字或中文…" autocomplete="off">
 <select id="lv"><option value="">全部級別</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
 <select id="sort"><option value="">字母順序 A→Z</option><option value="asc">難度 易→難</option><option value="desc">難度 難→易</option></select>
+<select id="rate" title="語速"><option value="0.6">語速 0.6×</option><option value="0.8">語速 0.8×</option><option value="1" selected>語速 1×</option><option value="1.2">語速 1.2×</option><option value="1.4">語速 1.4×</option></select>
+<select id="vsel" title="聲音"></select><button id="vtest" type="button">試聽</button>
 <label><input type="checkbox" id="auto" checked> 點選後自動朗讀</label>
 <span class="cnt" id="cnt"></span>
 </div>
@@ -49,13 +52,30 @@ function render(){
  list.innerHTML=h;cnt.textContent=shown.length+' / '+D.length;
 }
 let voice=null;
-function pickVoice(){const v=speechSynthesis.getVoices();voice=v.find(x=>/^en[-_]US/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const vsel=document.getElementById('vsel'),rsel=document.getElementById('rate');
+function pickVoice(){
+ const all=speechSynthesis.getVoices().filter(x=>/^en/i.test(x.lang));
+ vsel.innerHTML='';
+ all.forEach((v,i)=>{const o=document.createElement('option');o.value=v.name;
+  const tag=/en[-_]GB/i.test(v.lang)?'英式':/en[-_]US/i.test(v.lang)?'美式':/en[-_]AU/i.test(v.lang)?'澳式':v.lang;
+  o.textContent=v.name.replace(/^(Microsoft|Google)\s*/,'')+' · '+tag;vsel.appendChild(o)});
+ if(!all.length){const o=document.createElement('option');o.textContent='預設英文語音';vsel.appendChild(o)}
+ const saved=store.get('voice'),us=all.find(x=>/en[-_]US/i.test(x.lang));
+ const v=all.find(x=>x.name===saved)||us||all[0]||null;
+ voice=v;if(v)vsel.value=v.name;
+}
 if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+else document.getElementById('warn').style.display='block';
+if(/Line\//i.test(navigator.userAgent))document.getElementById('warn').style.display='block';
+const sr=store.get('rate');if(sr&&[...rsel.options].some(o=>o.value===sr))rsel.value=sr;
+rsel.onchange=()=>store.set('rate',rsel.value);
+vsel.onchange=()=>{voice=speechSynthesis.getVoices().find(x=>x.name===vsel.value)||voice;store.set('voice',vsel.value)};
 function split(e){const k=e.indexOf('（');return k<0?[e,'']:[e.slice(0,k).trim(),e.slice(k)]}
 function speakList(list){
  if(!('speechSynthesis' in window)){alert('此瀏覽器不支援朗讀，請改用 Chrome 或 Safari 直接開啟。');return}
  const go=()=>{if(speechSynthesis.paused)speechSynthesis.resume();
-  list.forEach(t=>{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u)})};
+  list.forEach(t=>{const u=new SpeechSynthesisUtterance(t);u.lang=voice?voice.lang:'en-US';if(voice)u.voice=voice;u.rate=+rsel.value;speechSynthesis.speak(u)})};
  if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(go,60)}else go();
 }
 function speak(i){const r=D[i];speakList([r[0],split(r[4])[0]])}
@@ -73,5 +93,6 @@ list.onclick=e=>{const r=e.target.closest('.row');if(r)show(+r.dataset.i,true)};
 document.addEventListener('keydown',e=>{if(e.target.id==='q'&&e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const p=shown.indexOf(cur),n=shown[Math.max(0,Math.min(shown.length-1,p+(e.key==='ArrowDown'?1:-1)))];if(n!==undefined){show(n,true);const el=list.querySelector(`[data-i="${n}"]`);el&&el.scrollIntoView({block:'nearest'})}}});
 document.getElementById('q').oninput=render;document.getElementById('lv').onchange=render;document.getElementById('sort').onchange=render;
+document.getElementById('vtest').onclick=()=>speakList(['Hello, this is a voice test.']);
 render();
 </script></body></html>
