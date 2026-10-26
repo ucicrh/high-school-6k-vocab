@@ -48,15 +48,23 @@ function render(){
   h+=`<div class="row${i===cur?' on':''}" data-i="${i}"><b>${esc(r[0])}</b><span>${esc(r[1])} · L${r[2]}</span></div>`});
  list.innerHTML=h;cnt.textContent=shown.length+' / '+D.length;
 }
-function say(t,done){const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;if(done)u.onend=done;speechSynthesis.speak(u)}
+let voice=null;
+function pickVoice(){const v=speechSynthesis.getVoices();voice=v.find(x=>/^en[-_]US/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 function split(e){const k=e.indexOf('（');return k<0?[e,'']:[e.slice(0,k).trim(),e.slice(k)]}
-function speak(i){const r=D[i];speechSynthesis.cancel();say(r[0],()=>say(split(r[4])[0]))}
+function speakList(list){
+ if(!('speechSynthesis' in window)){alert('此瀏覽器不支援朗讀，請改用 Chrome 或 Safari 直接開啟。');return}
+ const go=()=>{if(speechSynthesis.paused)speechSynthesis.resume();
+  list.forEach(t=>{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(voice)u.voice=voice;u.rate=.9;speechSynthesis.speak(u)})};
+ if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(go,60)}else go();
+}
+function speak(i){const r=D[i];speakList([r[0],split(r[4])[0]])}
 function show(i,play){
  cur=i;const r=D[i],[en,zh]=split(r[4]);
  d.innerHTML=`<div class="w">${esc(r[0])}</div><div class="pos">${esc(r[1])} · Level ${r[2]}</div><div class="zh">${esc(r[3])}</div><div class="ex">${esc(en)}</div><div class="exz">${esc(zh)}</div><div class="btns"><button id="b1">🔊 單字+例句</button><button id="b2">🔊 只念單字</button><button id="b3">🔊 只念例句</button></div>`;
  document.getElementById('b1').onclick=()=>speak(i);
- document.getElementById('b2').onclick=()=>{speechSynthesis.cancel();say(r[0])};
- document.getElementById('b3').onclick=()=>{speechSynthesis.cancel();say(en)};
+ document.getElementById('b2').onclick=()=>speakList([r[0]]);
+ document.getElementById('b3').onclick=()=>speakList([en]);
  list.querySelectorAll('.on').forEach(e=>e.classList.remove('on'));
  const el=list.querySelector(`[data-i="${i}"]`);if(el)el.classList.add('on');
  if(play&&document.getElementById('auto').checked)speak(i);
